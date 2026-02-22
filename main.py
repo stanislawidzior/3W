@@ -10,76 +10,84 @@ mouse.set_visible(False)
 running = True
 dt = 0
 
-class Cube:
-    cube_indices = []
-    cube_vertices = []
+class Entity:
+    vertices = []
+    def draw():
+        pass
+
+class Scene:
+    entities: list[Entity] = []
+
+    def add_entity(self, entity : Entity):
+        self.entities.append(entity)   
+
+    def draw(self):
+        for e in self.entities:
+            e.draw()
+
+    def translate(self, translation : pygame.Vector3):
+        for e in self.entities:
+            for ver in e.vertices:
+                if translation.x != 0:
+                    ver.x = ver.x + translation.x
+                if translation.y != 0:
+                    ver.y = ver.y + translation.y
+                if translation.z != 0:
+                    ver.z = ver.z + translation.z
+
+    def rotate_y(self, angle):
+        cos = math.cos(math.radians(angle))
+        sin = math.sin(math.radians(angle))
+        for e in self.entities:
+            for ver in e.vertices:
+                old_ver = ver
+                ver.x = old_ver.x*cos + old_ver.z * sin
+                ver.z = old_ver.z*cos - old_ver.x * sin
+
+
+class Cube(Entity):
+    indices = [
+        [0,1,2,3],
+        [4,5,6,7],
+        [0,4,5,1],
+        [2,6,7,3]
+        ]
+    vertices = []
+    translations = [pygame.Vector3(0,0,0)]
     size = 0
     def __init__(self, size, position, rotation = 0):
         absolute_size = screen.get_width() / size
         absolute_size_half = absolute_size/2
-        self.cube_vertices = [
+        self.vertices = [
             pygame.Vector3(-absolute_size_half,-absolute_size_half,1),
             pygame.Vector3(-absolute_size_half,absolute_size_half,1),
             pygame.Vector3(absolute_size_half,absolute_size_half,1),
             pygame.Vector3(absolute_size_half,-absolute_size_half,1),
         
-            pygame.Vector3(-absolute_size_half,-absolute_size/2, absolute_size + 1),
-            pygame.Vector3(-absolute_size_half,absolute_size/2, absolute_size + 1),
-            pygame.Vector3(absolute_size_half,absolute_size/2, absolute_size + 1),
-            pygame.Vector3(absolute_size_half,-absolute_size/2, absolute_size + 1),
+            pygame.Vector3(-absolute_size_half,-absolute_size_half, absolute_size + 1),
+            pygame.Vector3(-absolute_size_half,absolute_size_half, absolute_size + 1),
+            pygame.Vector3(absolute_size_half,absolute_size_half, absolute_size + 1),
+            pygame.Vector3(absolute_size_half,-absolute_size_half, absolute_size + 1),
             ]
         absolute_position_x = (screen.get_width()/2 - position.x )/screen.get_width()
         absolute_position_y = (screen.get_height()/2 - position.y )/screen.get_height()
-        for v in self.cube_vertices:
+        for v in self.vertices:
             v.x += absolute_position_x
             v.y += absolute_position_y
-            
-
-
-cube_edge_width = 10
-cube_vertices = [
-    pygame.Vector3(-0.5,-0.5,1),
-    pygame.Vector3(-0.5,0.5,1),
-    pygame.Vector3(0.5,0.5,1),
-    pygame.Vector3(0.5,-0.5,1),
     
-    pygame.Vector3(-0.5,-0.5,2),
-    pygame.Vector3(-0.5,0.5,2),
-    pygame.Vector3(0.5,0.5,2),
-    pygame.Vector3(0.5,-0.5,2),
-    
-]
-cube_indices = [
-    [0,1,2,3],
-    [4,5,6,7],
-    [0,4,5,1],
-    [2,6,7,3]
-]
-
-cube_1 = Cube(50, pygame.Vector2(200,200))
-def draw_cubes(cube_vertices):
-    counter = 0
-    for v in cube_vertices:
-        counter += 1
-        projected = project_to_2d(v)
-        pygame.draw.circle(screen, "red", translate(projected), 2)
-        
-        ##pygame.draw.line(screen, "red", translate_to_screen_coord(projected), translate_to_screen_coord(project_to_2d(cube_vertices[counter%len(cube_vertices)]) ), 1)
-        ##pygame.draw.line(screen, "red", translate_to_screen_coord(projected), translate_to_screen_coord(project_to_2d(cube_vertices[(counter+2)%len(cube_vertices)]) ), 1)
-       
-        #projected = project_to_2d(pygame.Vector3(v.x +1, v.y, v.z))
-        #pygame.draw.circle(screen, "red", translate_to_screen_coord(projected), 2)
-        ##pygame.draw.line(screen, "red", translate_to_screen_coord(projected), translate_to_screen_coord(project_to_2d(cube_vertices[counter%len(cube_vertices)]) ), 1)
-        ##pygame.draw.line(screen, "red", translate_to_screen_coord(projected), translate_to_screen_coord(project_to_2d(cube_vertices[(counter+2)%len(cube_vertices)]) ), 1)
-    draw_faces()
-
-def draw_faces():
-    for face in cube_indices:
-        for i in range(len(face)):
-            pygame.draw.line(screen,"red", translate(project_to_2d(cube_vertices[face[i]])), translate(project_to_2d(cube_vertices[(face[(i +1)%len(face)])])))
-
-
-        
+    def add_cube(self, translation : pygame.Vector3):
+        self.translations.append(translation)
+    def draw(self):
+        self.draw_vertices()
+        self.draw_faces()
+    def draw_vertices(self):    
+        for v in self.vertices:
+            projected = project_to_2d(v)
+            pygame.draw.circle(screen, "red", translate(projected), 2)
+    def draw_faces(self):
+        for face in self.indices: 
+            for i in range(len(face)):
+                pygame.draw.line(screen,"red", translate(project_to_2d(self.vertices[face[i]])), translate(project_to_2d(self.vertices[(face[(i +1)%len(face)])])))
 
 def project_to_2d(vector3):
     return pygame.Vector2(
@@ -91,15 +99,10 @@ def translate(vector2):
         ((vector2.x + 1)/2)*screen.get_width(),
         (1 - (vector2.y + 1)/2)*screen.get_height())
 
-def rotate_y(vector3, angle):
-    cos = math.cos(math.radians(angle))
-    sin = math.sin(math.radians(angle))
-    return pygame.Vector3(
-        vector3.x*cos + vector3.z * sin,
-        vector3.y,
-        vector3.z*cos - vector3.x * sin
-    )
-
+cube_1 = Cube(50, pygame.Vector2(200,200))
+cube_1.add_cube(pygame.Vector3(0.5,0,0))
+scene = Scene()
+scene.add_entity(cube_1)
 while running:
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
@@ -110,24 +113,20 @@ while running:
     # fill the screen with a color to wipe away anything from last frame
     screen.fill("black")
 
-    draw_cubes(cube_vertices)
+    scene.draw()
     prev_mouse = mouse.get_rel()
     keys = pygame.key.get_pressed()
     if keys[pygame.K_w]:
-        for i in range(len(cube_vertices)):
-            cube_vertices[i].z = cube_vertices[i].z - 0.02
+        scene.translate(pygame.Vector3(0, 0, -0.2))
     if keys[pygame.K_s]:
-       for i in range(len(cube_vertices)):
-            cube_vertices[i].z = cube_vertices[i].z + 0.02
+        scene.translate(pygame.Vector3(0, 0, 0.2))
     if keys[pygame.K_a]:
-        for i in range(len(cube_vertices)):
-            cube_vertices[i].x = cube_vertices[i].x + 0.02
+        scene.translate(pygame.Vector3(0.2, 0, 0))
     if keys[pygame.K_d]:
-        for i in range(len(cube_vertices)):
-            cube_vertices[i].x = cube_vertices[i].x - 0.02
+        scene.translate(pygame.Vector3(-0.2, 0, 0))
     if prev_mouse[0] != 0:
-        for i in range(len(cube_vertices)):
-            cube_vertices[i] = rotate_y(cube_vertices[i], prev_mouse[0]/10 * -1)
+        scene.rotate_y(prev_mouse[0]/10 * -1)
+    
     mouse.set_pos([screen.get_width()/2,screen.get_height()/2])
     mouse.get_rel()
     # flip() the display to put your work on screen
