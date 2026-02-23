@@ -53,11 +53,10 @@ class Cube(Entity):
         [2,6,7,3]
         ]
     vertices = []
-    translations = [pygame.Vector3(0,0,0)]
     size = 0
     def __init__(self, size, position, rotation = 0):
-        absolute_size = screen.get_width() / size
-        absolute_size_half = absolute_size/2
+        absolute_size = size
+        absolute_size_half = size/2
         self.vertices = [
             pygame.Vector3(-absolute_size_half,-absolute_size_half,1),
             pygame.Vector3(-absolute_size_half,absolute_size_half,1),
@@ -69,25 +68,28 @@ class Cube(Entity):
             pygame.Vector3(absolute_size_half,absolute_size_half, absolute_size + 1),
             pygame.Vector3(absolute_size_half,-absolute_size_half, absolute_size + 1),
             ]
-        absolute_position_x = (screen.get_width()/2 - position.x )/screen.get_width()
-        absolute_position_y = (screen.get_height()/2 - position.y )/screen.get_height()
         for v in self.vertices:
-            v.x += absolute_position_x
-            v.y += absolute_position_y
+            v.x += position.x
+            v.y += position.y
     
-    def add_cube(self, translation : pygame.Vector3):
-        self.translations.append(translation)
     def draw(self):
         self.draw_vertices()
         self.draw_faces()
     def draw_vertices(self):    
         for v in self.vertices:
+            if v.z < 0:
+                print(v.z)
+                continue
             projected = project_to_2d(v)
             pygame.draw.circle(screen, "red", translate(projected), 2)
+    def is_visible(self,projected_vector):
+        return projected_vector.x < screen.get_width() and projected_vector.x > 0 and projected_vector.y < screen.get_height() and projected_vector.y > 0 
+    
     def draw_faces(self):
         for face in self.indices: 
             for i in range(len(face)):
-                pygame.draw.line(screen,"red", translate(project_to_2d(self.vertices[face[i]])), translate(project_to_2d(self.vertices[(face[(i +1)%len(face)])])))
+                if self.is_visible(translate(project_to_2d(self.vertices[face[i]]))) :
+                    pygame.draw.line(screen,"red", translate(project_to_2d(self.vertices[face[i]])), translate(project_to_2d(self.vertices[(face[(i +1)%len(face)])])))
 
 def project_to_2d(vector3):
     return pygame.Vector2(
@@ -99,8 +101,7 @@ def translate(vector2):
         ((vector2.x + 1)/2)*screen.get_width(),
         (1 - (vector2.y + 1)/2)*screen.get_height())
 
-cube_1 = Cube(50, pygame.Vector2(200,200))
-cube_1.add_cube(pygame.Vector3(0.5,0,0))
+cube_1 = Cube(0.2, pygame.Vector2(0,0))
 scene = Scene()
 scene.add_entity(cube_1)
 while running:
